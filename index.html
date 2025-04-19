@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>旅游问卷调查</title>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-storage.js"></script>
+</head>
+<body>
+    <h1>学生问卷</h1>
+    <form id="survey-form">
+        <label for="class">选择班级：</label>
+        <select id="class" name="class">
+            <!-- Option will be populated dynamically -->
+        </select><br><br>
+
+        <label for="name">选择或输入姓名：</label>
+        <select id="name" name="name">
+            <!-- Options will be populated dynamically -->
+        </select><br><br>
+        
+        <input type="text" id="new-name" placeholder="如果没有姓名，输入新姓名" /><br><br>
+
+        <div id="questions-container">
+            <!-- Dynamic questions will be inserted here -->
+        </div>
+
+        <button type="submit">提交问卷</button>
+    </form>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_PROJECT_ID.appspot.com",
+            messagingSenderId: "YOUR_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+
+        const app = firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        document.getElementById("survey-form").addEventListener("submit", function(event) {
+            event.preventDefault();
+            
+            const className = document.getElementById("class").value;
+            const studentName = document.getElementById("name").value || document.getElementById("new-name").value;
+            const answers = [];
+            
+            document.querySelectorAll(".question").forEach(question => {
+                const answer = question.querySelector("textarea").value;
+                answers.push(answer);
+            });
+
+            // Save student data to Firebase Firestore
+            db.collection("survey-responses").add({
+                class: className,
+                name: studentName,
+                answers: answers,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            }).then(() => {
+                alert("问卷已提交！");
+            });
+        });
+
+        // Fetch classes and student names dynamically from Firestore
+        const classSelect = document.getElementById("class");
+
+        db.collection("classes").get().then((snapshot) => {
+            snapshot.forEach(doc => {
+                const classOption = document.createElement("option");
+                classOption.value = doc.id;
+                classOption.textContent = doc.data().name;
+                classSelect.appendChild(classOption);
+            });
+        });
+
+        // Fetch questions dynamically from Firestore
+        const questionsContainer = document.getElementById("questions-container");
+
+        db.collection("questions").get().then((snapshot) => {
+            snapshot.forEach(doc => {
+                const questionDiv = document.createElement("div");
+                questionDiv.classList.add("question");
+                questionDiv.innerHTML = `
+                    <label>${doc.data().question}</label><br>
+                    <textarea placeholder="请输入你的答案"></textarea><br>
+                `;
+                questionsContainer.appendChild(questionDiv);
+            });
+        });
+    </script>
+</body>
+</html>
